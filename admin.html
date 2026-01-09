@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+
+    <!-- Icons & Fonts -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    
+    <style>
+        /* Global Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            background: #f4f7fc;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: #34495e;
+            color: white;
+            padding: 20px;
+            position: fixed;
+            height: 100%;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar ul li {
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+
+        .sidebar ul li:hover {
+            background: #2c3e50;
+        }
+
+        .sidebar ul li i {
+            margin-right: 10px;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 30px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+            width: 100%;
+        }
+
+        .dashboard-title {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        /* Card Style */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Table Styling */
+        .appointments-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .appointments-table thead {
+            background: #007bff;
+            color: white;
+        }
+
+        .appointments-table th, .appointments-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .appointments-table tbody tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+
+        /* Buttons */
+        .approve-btn {
+            background: #28a745;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .reject-btn {
+            background: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .approve-btn:hover {
+            background: #218838;
+        }
+
+        .reject-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <ul>
+            <li><i class="fas fa-home"></i> Dashboard</li>
+            <li><i class="fas fa-user-md"></i> Doctors</li>
+            <li><i class="fas fa-users"></i> Patients</li>
+        </ul>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h2 class="dashboard-title">Admin Dashboard</h2>
+
+        <!-- Appointment List -->
+        <div class="card">
+            <h3>Appointments</h3>
+            <table class="appointments-table">
+                <thead>
+                    <tr>
+                        <th>Patient Name</th>
+                        <th>Email</th>
+                        <th>Doctor</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="appointmentsTable">
+                    <!-- Appointments will load here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Firebase & JS -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore.js";
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-VoVtqXZ3BILqWcjSthfSD-Dff-dIhRQ",
+            authDomain: "hospital-management-b850a.firebaseapp.com",
+            projectId: "hospital-management-b850a",
+            storageBucket: "hospital-management-b850a.appspot.com",
+            messagingSenderId: "894878469846",
+            appId: "1:894878469846:web:f4526756889120b0a1c377",
+            measurementId: "G-VHBLK493CT"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Load Appointments
+        async function loadAppointments() {
+            const table = document.getElementById("appointmentsTable");
+            table.innerHTML = ""; // Clear table before reloading
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "appointments"));
+                querySnapshot.forEach((doc) => {
+                    let data = doc.data();
+                    let status = data.status || "Pending"; // Default status
+
+                    let row = `<tr>
+                        <td>${data.patientName}</td>
+                        <td>${data.patientEmail}</td>
+                        <td>${data.doctor}</td>
+                        <td>${data.appointmentDate}</td>
+                        <td>${data.appointmentTime}</td>
+                        <td>${status}</td>
+                        <td>
+                            <button class="approve-btn" onclick="updateAppointmentStatus('${doc.id}', 'Approved')">Approve</button>
+                            <button class="reject-btn" onclick="updateAppointmentStatus('${doc.id}', 'Rejected')">Reject</button>
+                        </td>
+                    </tr>`;
+                    table.innerHTML += row;
+                });
+            } catch (error) {
+                console.error("Error loading appointments:", error);
+            }
+        }
+
+        // Approve or Reject Appointment
+        window.updateAppointmentStatus = async function (id, status) {
+            try {
+                await updateDoc(doc(db, "appointments", id), { status });
+                alert(`Appointment ${status}`);
+                loadAppointments(); // Refresh table
+            } catch (error) {
+                console.error("Error updating appointment:", error);
+            }
+        };
+
+        // Logout Admin
+        window.logout = function () {
+            signOut(auth).then(() => {
+                alert("Admin Logged Out!");
+                window.location.href = "index.html";
+            }).catch((error) => {
+                console.error("Logout Error:", error);
+            });
+        };
+
+        // Check Admin Login
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.href = "login.html";
+            else loadAppointments();
+        });
+    </script>
+</body>
+</html>

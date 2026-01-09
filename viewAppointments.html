@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>View Appointments</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    nav {
+      background-color: #0077b6;
+      padding: 15px 30px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 25px;
+      margin: 0;
+      padding: 0;
+    }
+
+    nav ul li a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    nav ul li a:hover {
+      color: #cdefff;
+    }
+
+    .appointments-section {
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 30px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .appointments-section h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+      color: #023e8a;
+      border-bottom: 2px solid #e3e3e3;
+      padding-bottom: 10px;
+    }
+
+    .appointment-item {
+      border: 1px solid #dee2e6;
+      border-left: 6px solid #0077b6;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      background-color: #fdfefe;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .appointment-item:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .appointment-item strong {
+      font-size: 17px;
+      color: #023e8a;
+    }
+
+    .appointment-item em {
+      font-style: normal;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 14px;
+      margin-left: 10px;
+      font-weight: 600;
+    }
+
+    .status-Pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .status-Approved {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-Rejected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .action-buttons {
+      margin-top: 15px;
+      display: flex;
+      gap: 15px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-edit {
+      background-color: #ffc107;
+      color: #212529;
+    }
+
+    .btn-edit:hover {
+      background-color: #e0a800;
+    }
+
+    .btn-cancel {
+      background-color: #dc3545;
+      color: #fff;
+    }
+
+    .btn-cancel:hover {
+      background-color: #c82333;
+    }
+
+    #appointmentsList p {
+      text-align: center;
+      color: #777;
+    }
+
+    @media (max-width: 600px) {
+      .appointments-section {
+        padding: 20px;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav>
+    <div class="logo">HEALTH+</div>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="doctors.html">Doctors</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="#" id="logoutBtn">Logout</a></li>
+    </ul>
+  </nav>
+
+  <section class="appointments-section">
+    <h2>Your Appointments</h2>
+    <div id="appointmentsList">
+      <p>Loading your appointments...</p>
+    </div>
+  </section>
+
+  <!-- Firebase Script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs,
+      deleteDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-VoVtqXZ3BILqWcjSthfSD-Dff-dIhRQ",
+      authDomain: "hospital-management-b850a.firebaseapp.com",
+      projectId: "hospital-management-b850a",
+      storageBucket: "hospital-management-b850a.appspot.com",
+      messagingSenderId: "894878469846",
+      appId: "1:894878469846:web:f4526756889120b0a1c377",
+      measurementId: "G-VHBLK493CT"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      signOut(auth).then(() => {
+        window.location.href = "login.html";
+      });
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      const appointmentsList = document.getElementById("appointmentsList");
+
+      if (!user) {
+        alert("You must log in to view your appointments.");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const q = query(collection(db, "appointments"), where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        appointmentsList.innerHTML = "<p>You have no appointments yet.</p>";
+      } else {
+        appointmentsList.innerHTML = "";
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const { appointmentDate, appointmentTime, doctor, status } = data;
+          const id = docSnap.id;
+
+          const div = document.createElement("div");
+          div.className = "appointment-item";
+          div.innerHTML = `
+            <strong>${appointmentDate}</strong> at ${appointmentTime}<br/>
+            with <strong>${doctor}</strong>
+            <em class="status-${status}">${status}</em>
+            <div class="action-buttons">
+              <button class="btn btn-edit" data-id="${id}">Edit</button>
+              <button class="btn btn-cancel" data-id="${id}">Cancel</button>
+            </div>
+          `;
+          appointmentsList.appendChild(div);
+        });
+
+        // Cancel button logic
+        document.querySelectorAll(".btn-cancel").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            if (confirm("Are you sure you want to cancel this appointment?")) {
+              await deleteDoc(doc(db, "appointments", id));
+              alert("Appointment canceled.");
+              location.reload();
+            }
+          });
+        });
+
+        // Edit button placeholder
+        document.querySelectorAll(".btn-edit").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            alert("Edit functionality coming soon for appointment ID: " + id);
+          });
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>
