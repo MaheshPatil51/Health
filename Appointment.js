@@ -65,16 +65,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 timestamp: new Date()
             });
 
-            alert("✅ Appointment booked successfully!");
+            alert("Appointment booked successfully!");
             appointmentForm.reset();
 
-            // ✅ Redirect to Home Page after successful booking
+            // Redirect to Home Page after successful booking
             setTimeout(() => {
                 window.location.href = "index.html";
             }, 1500); // Small delay to show success message
 
         } catch (error) {
-            alert("❌ Error booking appointment: " + error.message);
+            alert("Error booking appointment: " + error.message);
         }
     });
 });
